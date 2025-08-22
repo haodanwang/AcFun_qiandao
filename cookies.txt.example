@@ -1,0 +1,16 @@
+# Cookie示例文件
+# 请将您从浏览器复制的Cookie内容替换下面的示例内容
+# 
+# 获取方法：
+# 1. 使用浏览器登录 AcgFun.art
+# 2. 按F12打开开发者工具
+# 3. 在控制台输入: copy(document.cookie)
+# 4. 将复制的内容粘贴到 cookies.txt 文件中
+#
+# 注意：
+# - Cookie内容应该是一行，不要换行
+# - Cookie中包含多个键值对，用分号和空格分隔
+# - 不要包含这些注释行
+#
+# 示例格式：
+key1=value1; key2=value2; key3=value3; session_id=abc123def456; user_token=xyz789; last_visit=1000000000
