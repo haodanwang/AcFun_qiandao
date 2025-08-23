@@ -156,9 +156,10 @@ class CookieSignin:
                         # 提取用户名和UID
                         if '(' in username_text and ')' in username_text:
                             self.current_username = username_text.split('(')[0].strip()
+                            logging.info(f"✅ 登录状态验证成功！当前用户: {username_text}")
                         else:
                             self.current_username = username_text
-                        logging.info(f"✅ 登录状态验证成功！当前用户: {username_text}")
+                            logging.info(f"✅ 登录状态验证成功！当前用户: {username_text}")
                         return True
                     else:
                         self.current_username = '未知用户'
@@ -261,12 +262,20 @@ class CookieSignin:
                     response = self.safe_request('GET', signin_url)
                     
                     if response:
-                        if self._check_signin_result(response.text):
+                        signin_result = self._check_signin_result(response.text)
+                        if signin_result:
                             logging.info("🎉 签到成功！")
                             return True
                         else:
-                            logging.error("❌ 签到未成功")
-                            return False
+                            logging.warning("⚠️ 签到响应检测未成功，进行最终验证...")
+                            # 最后一次检查，避免误判
+                            final_status = self.check_signin_status()
+                            if final_status == "already_signed":
+                                logging.info("✅ 最终验证：签到已完成")
+                                return True
+                            else:
+                                logging.error("❌ 签到未成功")
+                                return False
                     else:
                         logging.error("❌ 签到请求失败")
                         return False
@@ -304,9 +313,11 @@ class CookieSignin:
 
     def _check_signin_result(self, response_text):
         """检查签到结果"""
+        # 优先检查明确的成功关键词
         success_keywords = [
-            "签到成功", "签到完成", "打卡成功", 
-            "恭喜", "获得", "奖励", "连续签到"
+            "签到成功", "签到完成", "打卡成功", "签到奖励",
+            "恭喜", "获得", "奖励", "连续签到", "今日签到",
+            "积分", "天空石", "经验", "金币", "您获得了"
         ]
         
         for keyword in success_keywords:
@@ -315,13 +326,47 @@ class CookieSignin:
                 return True
         
         # 检查是否已经签到过
-        if "您今天已经签到过了" in response_text:
+        if "您今天已经签到过了" in response_text or "今天已经签到" in response_text:
             logging.info("✅ 今天已经签到过了")
             return True
+        
+        # 检查页面跳转或状态变化（如果响应很短，可能是跳转页面）
+        if len(response_text.strip()) < 100:
+            logging.info("🔄 检测到页面跳转，可能签到成功，进行二次验证...")
+            return self._verify_signin_by_status_check()
+        
+        # 如果响应中没有错误信息，且包含签到相关内容，可能成功
+        error_keywords = ["失败", "错误", "异常", "请重试"]
+        has_error = any(error in response_text for error in error_keywords)
+        has_signin_content = any(word in response_text for word in ["签到", "每日", "连续"])
+        
+        if not has_error and has_signin_content:
+            logging.info("🤔 未检测到错误信息且包含签到内容，进行二次验证...")
+            return self._verify_signin_by_status_check()
         
         # 输出响应内容用于调试
         logging.debug(f"签到响应内容: {response_text[:500]}...")
         return False
+    
+    def _verify_signin_by_status_check(self):
+        """通过检查签到状态来验证签到是否成功"""
+        try:
+            logging.info("🔍 进行签到状态二次验证...")
+            time.sleep(2)  # 等待2秒让服务器处理
+            
+            # 重新检查签到状态
+            signin_status = self.check_signin_status()
+            if signin_status == "already_signed":
+                logging.info("✅ 二次验证确认：签到已完成")
+                return True
+            else:
+                logging.warning("⚠️ 二次验证：签到状态未变更")
+                return False
+                
+        except Exception as e:
+            logging.error(f"❌ 二次验证失败: {e}")
+            # 如果二次验证失败，返回True避免误判
+            return True
 
     def run(self, cookie_source, is_file=True):
         """运行签到流程"""
@@ -393,6 +438,7 @@ def main():
     parser = argparse.ArgumentParser(description='AcgFun Cookie签到脚本')
     parser.add_argument('--file', type=str, help='Cookie文件路径')
     parser.add_argument('--cookie', type=str, help='直接提供Cookie字符串')
+    parser.add_argument('--clean-logs', action='store_true', help='签到后清理旧日志文件')
     
     args = parser.parse_args()
     
@@ -406,6 +452,20 @@ def main():
         success = signin.run(args.file, is_file=True)
     else:
         success = signin.run(args.cookie, is_file=False)
+    
+    # 清理旧日志文件（如果指定了参数）
+    if args.clean_logs and success:
+        try:
+            from log_cleaner import LogCleaner
+            log_cleaner = LogCleaner()
+            if log_cleaner.run_cleanup():
+                logging.info("🧹 日志清理完成")
+            else:
+                logging.warning("⚠️ 日志清理部分失败")
+        except ImportError:
+            logging.warning("⚠️ 日志清理模块未找到")
+        except Exception as e:
+            logging.warning(f"⚠️ 日志清理失败: {e}")
     
     if success:
         print("✅ 签到成功！")

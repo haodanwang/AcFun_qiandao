@@ -2,7 +2,7 @@
 
 一个基于Cookie认证的 AcgFun.art 网站自动签到脚本，简单稳定，成功率高。
 
-**支持的签到页面**：`https://acgfun.art/
+**支持的签到页面**：`https://acgfun.art/plugin.php?id=k_misign:sign`
 
 ## 功能特点
 
