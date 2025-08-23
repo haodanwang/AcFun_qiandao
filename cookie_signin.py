@@ -394,7 +394,10 @@ class CookieSignin:
             signin_status = self.check_signin_status()
             if signin_status == "already_signed":
                 logging.info("✅ 今天已经签到，任务完成！")
-                self.wechat_notifier.notify_already_signed(self.current_username)
+                # 获取天空石信息并通知
+                tiankonshi_info = self.get_tiankonshi_info()
+                signin_detail = f"今日签到已完成\n{tiankonshi_info}"
+                self.wechat_notifier.notify_signin_success(self.current_username, signin_detail)
                 return True
             elif signin_status == "not_signed":
                 # 执行签到
