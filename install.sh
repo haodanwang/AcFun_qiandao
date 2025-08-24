@@ -108,30 +108,62 @@ install_dependencies() {
     print_success "系统依赖安装完成"
 }
 
-# 创建项目目录
-setup_project() {
-    print_info "设置项目目录..."
+# 设置安装目录
+setup_install_directory() {
+    print_info "设置安装目录..."
     
-    local project_dir="$HOME/acgfun_signin"
+    echo "请选择安装方式："
+    echo "1) 在当前目录安装"
+    echo "2) 安装到自定义目录"
+    echo "3) 安装到默认目录 ($HOME/acgfun_signin)"
+    read -p "请选择 (1-3): " -n 1 -r
+    echo
     
-    if [[ -d "$project_dir" ]]; then
-        print_warning "项目目录已存在: $project_dir"
-        read -p "是否删除并重新创建？ (y/N): " -n 1 -r
+    case $REPLY in
+        1)
+            PROJECT_DIR="$(pwd)"
+            print_info "将在当前目录安装: $PROJECT_DIR"
+            ;;
+        2)
+            read -p "请输入安装目录路径: " custom_dir
+            if [[ -z "$custom_dir" ]]; then
+                print_error "安装目录不能为空"
+                exit 1
+            fi
+            PROJECT_DIR="$custom_dir"
+            print_info "将安装到: $PROJECT_DIR"
+            ;;
+        3)
+            PROJECT_DIR="$HOME/acgfun_signin"
+            print_info "将安装到默认目录: $PROJECT_DIR"
+            ;;
+        *)
+            print_warning "无效选择，使用当前目录"
+            PROJECT_DIR="$(pwd)"
+            ;;
+    esac
+    
+    # 检查目录是否存在，如果不存在则创建
+    if [[ ! -d "$PROJECT_DIR" ]]; then
+        print_info "创建目录: $PROJECT_DIR"
+        mkdir -p "$PROJECT_DIR"
+    fi
+    
+    # 如果不是当前目录，检查目录是否为空
+    if [[ "$PROJECT_DIR" != "$(pwd)" ]] && [[ -n "$(ls -A "$PROJECT_DIR" 2>/dev/null)" ]]; then
+        print_warning "目录不为空: $PROJECT_DIR"
+        read -p "是否继续安装？ (y/N): " -n 1 -r
         echo
-        if [[ $REPLY =~ ^[Yy]$ ]]; then
-            rm -rf "$project_dir"
-        else
-            print_info "使用现有目录"
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            exit 1
         fi
     fi
     
-    mkdir -p "$project_dir"
-    cd "$project_dir"
+    cd "$PROJECT_DIR"
+    print_success "安装目录设置完成: $PROJECT_DIR"
     
-    print_success "项目目录设置完成: $project_dir"
-    
-    # 保存项目目录到环境变量
-    export PROJECT_DIR="$project_dir"
+    # 导出项目目录环境变量
+    export PROJECT_DIR
 }
 
 # 安装Python依赖
@@ -158,13 +190,55 @@ EOF
     print_success "Python依赖包安装完成"
 }
 
-# 创建配置文件模板
-create_config_files() {
-    print_info "创建配置文件..."
+# 创建或复制配置文件
+setup_config_files() {
+    print_info "设置配置文件..."
     
-    # 创建sendkey.txt.example
-    if [[ ! -f sendkey.txt.example ]]; then
-        cat > sendkey.txt.example << 'EOF'
+    # 检查代码库中是否已有样例文件
+    local has_example_files=false
+    if [[ -f "cookies.txt.example" ]] && [[ -f "sendkey.txt.example" ]]; then
+        has_example_files=true
+        print_success "检测到代码库中已有样例文件"
+    fi
+    
+    if [[ "$has_example_files" == "true" ]]; then
+        echo "检测到项目中已有样例文件，请选择操作："
+        echo "1) 使用现有样例文件（推荐）"
+        echo "2) 重新生成样例文件"
+        echo "3) 跳过样例文件设置"
+        read -p "请选择 (1-3): " -n 1 -r
+        echo
+        
+        case $REPLY in
+            1)
+                print_info "使用现有样例文件"
+                return 0
+                ;;
+            2)
+                print_info "将重新生成样例文件"
+                ;;
+            3)
+                print_info "跳过样例文件设置"
+                return 0
+                ;;
+            *)
+                print_info "使用现有样例文件（默认选择）"
+                return 0
+                ;;
+        esac
+    else
+        read -p "是否生成样例文件？ (Y/n): " -n 1 -r
+        echo
+        if [[ $REPLY =~ ^[Nn]$ ]]; then
+            print_info "跳过样例文件生成"
+            return 0
+        fi
+    fi
+    
+    print_info "生成样例文件..."
+    
+    # 创建 sendkey.txt.example
+    cat > sendkey.txt.example << 'EOF'
 # Server酱SendKey示例文件
 # 请将下面的示例SendKey替换为您的真实SendKey
 # 
@@ -177,11 +251,9 @@ create_config_files() {
 # 示例格式：
 # SCTxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 EOF
-    fi
     
-    # 创建cookies.txt.example
-    if [[ ! -f cookies.txt.example ]]; then
-        cat > cookies.txt.example << 'EOF'
+    # 创建 cookies.txt.example
+    cat > cookies.txt.example << 'EOF'
 # Cookie示例文件
 # 请将您从浏览器复制的Cookie内容替换下面的示例内容
 # 
@@ -199,24 +271,23 @@ EOF
 # 示例格式：
 key1=value1; key2=value2; key3=value3; session_id=abc123def456; user_token=xyz789; last_visit=1000000000
 EOF
-    fi
     
-    print_success "配置文件模板创建完成"
+    print_success "样例文件生成完成"
 }
 
 # 创建启动脚本
 create_startup_script() {
     print_info "创建启动脚本..."
     
-    cat > run_signin.sh << 'EOF'
+    cat > run_signin.sh << EOF
 #!/bin/bash
 
 # AcgFun自动签到启动脚本
-PROJECT_DIR="$HOME/acgfun_signin"
+PROJECT_DIR="$PROJECT_DIR"
 cd "$PROJECT_DIR"
 
 echo "==============================================="
-echo "开始执行AcgFun自动签到 - $(date)"
+echo "开始执行AcgFun自动签到 - \$(date)"
 echo "==============================================="
 
 # 检查配置文件
@@ -230,10 +301,10 @@ if [[ ! -f sendkey.txt ]]; then
 fi
 
 # 执行签到
-python3 cookie_signin.py --file cookies.txt
+python3 cookie_signin.py --file cookies.txt --clean-logs
 
 echo "===============================================" 
-echo "签到任务完成 - $(date)"
+echo "签到任务完成 - \$(date)"
 echo "==============================================="
 EOF
     
@@ -264,16 +335,16 @@ setup_crontab() {
     local cron_entries=""
     case $REPLY in
         1)
-            cron_entries="0 9 * * * cd $PROJECT_DIR && python3 cookie_signin.py --file cookies.txt >> $PROJECT_DIR/cron.log 2>&1"
+            cron_entries="0 9 * * * cd $PROJECT_DIR && python3 cookie_signin.py --file cookies.txt --clean-logs >> $PROJECT_DIR/cron.log 2>&1"
             ;;
         2)
-            cron_entries="0 9 * * * cd $PROJECT_DIR && python3 cookie_signin.py --file cookies.txt >> $PROJECT_DIR/cron.log 2>&1
-0 12 * * * cd $PROJECT_DIR && python3 cookie_signin.py --file cookies.txt >> $PROJECT_DIR/cron.log 2>&1
-0 18 * * * cd $PROJECT_DIR && python3 cookie_signin.py --file cookies.txt >> $PROJECT_DIR/cron.log 2>&1"
+            cron_entries="0 9 * * * cd $PROJECT_DIR && python3 cookie_signin.py --file cookies.txt --clean-logs >> $PROJECT_DIR/cron.log 2>&1
+0 12 * * * cd $PROJECT_DIR && python3 cookie_signin.py --file cookies.txt --clean-logs >> $PROJECT_DIR/cron.log 2>&1
+0 18 * * * cd $PROJECT_DIR && python3 cookie_signin.py --file cookies.txt --clean-logs >> $PROJECT_DIR/cron.log 2>&1"
             ;;
         3)
             read -p "请输入cron表达式 (例如: 0 9 * * *): " cron_time
-            cron_entries="$cron_time cd $PROJECT_DIR && python3 cookie_signin.py --file cookies.txt >> $PROJECT_DIR/cron.log 2>&1"
+            cron_entries="$cron_time cd $PROJECT_DIR && python3 cookie_signin.py --file cookies.txt --clean-logs >> $PROJECT_DIR/cron.log 2>&1"
             ;;
         *)
             print_warning "无效选择，跳过定时任务设置"
@@ -348,9 +419,9 @@ main() {
     check_system
     install_python
     install_dependencies
-    setup_project
+    setup_install_directory
     install_python_packages
-    create_config_files
+    setup_config_files
     create_startup_script
     setup_crontab
     show_config_guide
