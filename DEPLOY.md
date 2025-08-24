@@ -73,12 +73,16 @@ git clone <your-repo-url> .
 **方法2：手动上传文件**
 将以下核心文件上传到服务器的 `~/acgfun_signin` 目录：
 - `cookie_signin.py`
+- `credit_analyzer.py`
 - `verify_signin.py` 
 - `wechat_notifier.py`
+- `log_cleaner.py`
 - `requirements.txt`
-- `sendkey.txt.example`
-- `cookies.txt.example`（如果有的话）
+- `config/sendkey.txt.example`
+- `config/cookies.txt.example`
+- `install.sh`
 - `README.md`
+- `DEPLOY.md`
 - `.gitignore`
 
 **方法3：使用scp上传**
@@ -103,16 +107,22 @@ pip3 install --user -r requirements.txt
 
 ## 三、配置文件设置
 
-### 1. 配置Server酱SendKey
+### 1. 创建配置目录
 ```bash
-# 复制示例文件
-cp sendkey.txt.example sendkey.txt
-
-# 编辑配置文件
-vim sendkey.txt
+# 创建配置和日志目录
+mkdir -p config logs
 ```
 
-在`sendkey.txt`中填入您的Server酱SendKey：
+### 2. 配置Server酱SendKey
+```bash
+# 复制示例文件
+cp config/sendkey.txt.example config/sendkey.txt
+
+# 编辑配置文件
+vim config/sendkey.txt
+```
+
+在`config/sendkey.txt`中填入您的Server酱SendKey：
 ```
 SCTxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
@@ -122,14 +132,14 @@ SCTxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 2. 微信扫码登录并关注公众号
 3. 复制您的SendKey
 
-### 2. 配置Cookie
+### 3. 配置Cookie
 ```bash
 # 创建Cookie文件
-touch cookies.txt
-vim cookies.txt
+touch config/cookies.txt
+vim config/cookies.txt
 ```
 
-在`cookies.txt`中填入从浏览器复制的Cookie：
+在`config/cookies.txt`中填入从浏览器复制的Cookie：
 ```
 key1=value1; key2=value2; key3=value3; session_id=abc123def456; user_token=xyz789
 ```
@@ -138,12 +148,12 @@ key1=value1; key2=value2; key3=value3; session_id=abc123def456; user_token=xyz78
 1. 使用浏览器登录 AcgFun.art
 2. 按F12打开开发者工具
 3. 在控制台输入：`copy(document.cookie)`
-4. 将复制的内容粘贴到`cookies.txt`文件中
+4. 将复制的内容粘贴到`config/cookies.txt`文件中
 
-### 3. 设置文件权限
+### 4. 设置文件权限
 ```bash
 # 设置适当的文件权限
-chmod 600 cookies.txt sendkey.txt
+chmod 600 config/cookies.txt config/sendkey.txt
 chmod 755 *.py
 ```
 
@@ -162,10 +172,16 @@ python3 verify_signin.py
 ```
 
 ### 3. 测试微信通知
-如果您删除了测试文件，可以手动测试：
+直接运行签到脚本测试：
 ```bash
-# 直接运行签到脚本测试
-python3 cookie_signin.py --file cookies.txt
+# 测试签到功能和微信通知
+python3 cookie_signin.py
+
+# 测试带日志清理功能
+python3 cookie_signin.py --clean-logs
+
+# 单独测试天空石信息获取
+python3 credit_analyzer.py
 ```
 
 ## 五、自动化配置
@@ -177,13 +193,13 @@ python3 cookie_signin.py --file cookies.txt
 # 编辑crontab
 crontab -e
 
-# 添加以下内容（每天上午9点执行）
-0 9 * * * cd ~/acgfun_signin && python3 cookie_signin.py --file cookies.txt >> ~/acgfun_signin/cron.log 2>&1
+# 添加以下内容（每天上午9点执行，带日志清理）
+0 9 * * * cd ~/acgfun_signin && python3 cookie_signin.py --clean-logs >> ~/acgfun_signin/logs/cron.log 2>&1
 
 # 可选：添加多个时间点提高成功率
-0 9 * * * cd ~/acgfun_signin && python3 cookie_signin.py --file cookies.txt >> ~/acgfun_signin/cron.log 2>&1
-0 12 * * * cd ~/acgfun_signin && python3 cookie_signin.py --file cookies.txt >> ~/acgfun_signin/cron.log 2>&1
-0 18 * * * cd ~/acgfun_signin && python3 cookie_signin.py --file cookies.txt >> ~/acgfun_signin/cron.log 2>&1
+0 9 * * * cd ~/acgfun_signin && python3 cookie_signin.py --clean-logs >> ~/acgfun_signin/logs/cron.log 2>&1
+0 12 * * * cd ~/acgfun_signin && python3 cookie_signin.py >> ~/acgfun_signin/logs/cron.log 2>&1
+0 18 * * * cd ~/acgfun_signin && python3 cookie_signin.py >> ~/acgfun_signin/logs/cron.log 2>&1
 ```
 
 ### 2. 查看crontab任务
@@ -206,8 +222,8 @@ echo "==============================================="
 echo "开始执行AcgFun自动签到 - $(date)"
 echo "==============================================="
 
-# 执行签到
-python3 cookie_signin.py --file cookies.txt
+# 执行签到（带日志清理）
+python3 cookie_signin.py --clean-logs
 
 echo "===============================================" 
 echo "签到任务完成 - $(date)"
@@ -221,9 +237,9 @@ chmod +x ~/acgfun_signin/run_signin.sh
 ## 六、日志管理
 
 ### 1. 日志文件位置
-- 脚本日志：`~/acgfun_signin/cookie_signin.log`
-- Cron日志：`~/acgfun_signin/cron.log`
-- 清理日志：`~/acgfun_signin/cleanup.log`
+- 签到日志：`~/acgfun_signin/logs/cookie_signin.log`
+- Cron日志：`~/acgfun_signin/logs/cron.log`
+- 清理日志：`~/acgfun_signin/logs/cleanup.log`
 
 ### 2. 自动日志清理
 项目包含自动日志清理功能：
@@ -246,10 +262,15 @@ python3 log_cleaner.py --dir /path/to/project
 - 自动删除空日志文件
 
 ### 3. 定时清理设置
-在一键安装脚本中可选择设置自动清理（每周日凌晨2点）：
+使用--clean-logs参数集成到签到命令中（推荐）：
 ```bash
-# 手动添加到crontab
-echo "0 2 * * 0 cd ~/acgfun_signin && python3 log_cleaner.py >> ~/acgfun_signin/cleanup.log 2>&1" | crontab -
+# 签到时自动清理（已包含在上面的crontab配置中）
+python3 cookie_signin.py --clean-logs
+```
+
+或者手动添加单独的清理任务（每周日凌晨2点）：
+```bash
+echo "0 2 * * 0 cd ~/acgfun_signin && python3 log_cleaner.py >> ~/acgfun_signin/logs/cleanup.log 2>&1" | crontab -
 ```
 
 ### 4. 日志轮转（可选）
@@ -308,10 +329,10 @@ ping acgfun.art
 ### 2. 查看日志
 ```bash
 # 查看最新的签到日志
-tail -f ~/acgfun_signin/cookie_signin.log
+tail -f ~/acgfun_signin/logs/cookie_signin.log
 
 # 查看cron日志
-tail -f ~/acgfun_signin/cron.log
+tail -f ~/acgfun_signin/logs/cron.log
 
 # 查看系统cron日志
 sudo tail -f /var/log/cron
@@ -321,7 +342,13 @@ sudo tail -f /var/log/cron
 ```bash
 # 手动运行脚本查看详细输出
 cd ~/acgfun_signin
-python3 cookie_signin.py --file cookies.txt
+python3 cookie_signin.py
+
+# 测试天空石信息获取
+python3 credit_analyzer.py
+
+# 测试日志清理功能
+python3 log_cleaner.py --dry-run
 ```
 
 ## 八、安全建议
@@ -329,7 +356,7 @@ python3 cookie_signin.py --file cookies.txt
 ### 1. 文件权限
 ```bash
 # 确保敏感文件权限正确
-chmod 600 cookies.txt sendkey.txt
+chmod 600 config/cookies.txt config/sendkey.txt
 chmod 755 ~/acgfun_signin
 ```
 
@@ -362,14 +389,14 @@ pip3 install --upgrade -r requirements.txt
 Cookie会定期过期，需要重新获取：
 ```bash
 # 更新Cookie
-vim ~/acgfun_signin/cookies.txt
+vim ~/acgfun_signin/config/cookies.txt
 ```
 
 ### 3. 备份配置
 ```bash
 # 备份重要配置文件
-cp cookies.txt cookies.txt.backup
-cp sendkey.txt sendkey.txt.backup
+cp config/cookies.txt config/cookies.txt.backup
+cp config/sendkey.txt config/sendkey.txt.backup
 ```
 
 ## 十、卸载说明
@@ -398,24 +425,26 @@ mkdir -p ~/acgfun_signin && cd ~/acgfun_signin
 
 # 2. 上传项目文件（手动）
 
-# 3. 安装依赖
+# 3. 创建配置和日志目录
+mkdir -p config logs
+
+# 4. 安装依赖
 pip3 install -r requirements.txt
 
-# 4. 配置文件
-cp sendkey.txt.example sendkey.txt
-vim sendkey.txt  # 填入SendKey
-vim cookies.txt  # 填入Cookie
+# 5. 配置文件
+cp config/sendkey.txt.example config/sendkey.txt
+vim config/sendkey.txt  # 填入SendKey
+vim config/cookies.txt  # 填入Cookie
 
-# 5. 设置权限
-chmod 600 cookies.txt sendkey.txt
+# 6. 设置权限
+chmod 600 config/cookies.txt config/sendkey.txt
 chmod 755 *.py
 
-# 6. 测试运行
-python3 cookie_signin.py --file cookies.txt
+# 7. 测试运行
+python3 cookie_signin.py
 
-# 7. 设置定时任务（包含签到和日志清理）
-echo "0 9 * * * cd ~/acgfun_signin && python3 cookie_signin.py --file cookies.txt >> ~/acgfun_signin/cron.log 2>&1" | crontab -
-echo "0 2 * * 0 cd ~/acgfun_signin && python3 log_cleaner.py >> ~/acgfun_signin/cleanup.log 2>&1" | crontab -
+# 8. 设置定时任务（包含签到和日志清理）
+echo "0 9 * * * cd ~/acgfun_signin && python3 cookie_signin.py --clean-logs >> ~/acgfun_signin/logs/cron.log 2>&1" | crontab -
 ```
 
-部署完成后，您将拥有一个完全自动化的AcgFun签到系统，包含微信通知功能！
+部署完成后，您将拥有一个完全自动化的AcgFun签到系统，包含微信通知、天空石信息获取和自动日志清理功能！

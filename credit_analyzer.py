@@ -10,10 +10,9 @@ import requests
 import logging
 import re
 from bs4 import BeautifulSoup
-from typing import Optional, Dict
 
 class CreditAnalyzer:
-    def __init__(self, session: requests.Session = None):
+    def __init__(self, session=None):
         """
         初始化积分分析器
         
@@ -60,7 +59,7 @@ class CreditAnalyzer:
         
         return None
 
-    def load_cookies_from_file(self, cookie_file: str) -> bool:
+    def load_cookies_from_file(self, cookie_file):
         """从文件加载Cookie"""
         try:
             with open(cookie_file, 'r', encoding='utf-8') as f:
@@ -82,7 +81,7 @@ class CreditAnalyzer:
             logging.error(f"❌ Cookie加载失败: {e}")
             return False
 
-    def get_credit_info(self) -> Optional[Dict]:
+    def get_credit_info(self):
         """
         获取积分信息
         
@@ -201,7 +200,7 @@ class CreditAnalyzer:
             logging.error(f"❌ 获取积分信息失败: {e}")
             return None
 
-    def get_tiankonhhi_count(self) -> Optional[int]:
+    def get_tiankonhhi_count(self):
         """
         专门获取天空石数量
         
@@ -218,7 +217,7 @@ def main():
     import argparse
     
     parser = argparse.ArgumentParser(description='AcgFun积分分析工具')
-    parser.add_argument('--cookies', type=str, default='cookies.txt', help='Cookie文件路径')
+    parser.add_argument('--cookies', type=str, default='config/cookies.txt', help='Cookie文件路径')
     
     args = parser.parse_args()
     
