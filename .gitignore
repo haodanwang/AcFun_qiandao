@@ -36,3 +36,9 @@ Thumbs.db
 # 调试文件
 *.html
 debug_*
+
+# 备份文件
+*_backup*
+*.backup
+backup/
+acgfun_backup_*/

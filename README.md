@@ -136,6 +136,7 @@ AcgFun签到脚本/
 ├── log_cleaner.py          # 日志清理模块
 ├── verify_signin.py        # 签到验证脚本
 ├── install.sh              # 一键安装脚本
+├── uninstall.sh            # 安全卸载脚本
 ├── requirements.txt        # 依赖包列表
 ├── DEPLOY.md              # 部署说明
 └── README.md              # 项目说明
@@ -227,6 +228,21 @@ crontab -e
    ```
 3. **按照提示配置Cookie和SendKey**
 
+### 安全卸载
+
+如需更新或卸载系统：
+```bash
+chmod +x uninstall.sh
+./uninstall.sh
+```
+
+**卸载功能**：
+- 💾 自动备份配置文件到指定目录
+- 🗑️ 清除所有crontab定时任务
+- 📁 删除项目安装目录
+- 🧹 清理所有相关日志文件
+- ✨ 提供多种备份选项（主目录/桌面/自定义目录）
+
 ### 手动部署
 
 详细部署说明请参考：[DEPLOY.md](DEPLOY.md)
@@ -259,6 +275,7 @@ crontab -e
 **部署文件：**
 - `DEPLOY.md` - CentOS 7.9详细部署说明
 - `install.sh` - 一键安装脚本
+- `uninstall.sh` - 安全卸载脚本（备份配置文件）
 - `requirements.txt` - Python依赖包列表
 
 **项目文档：**

@@ -401,17 +401,42 @@ cp config/sendkey.txt config/sendkey.txt.backup
 
 ## 十、卸载说明
 
-如需卸载，执行以下步骤：
+### 使用卸载脚本（推荐）
+
+项目提供了安全的卸载脚本，可以自动备份配置文件并清理安装：
 
 ```bash
-# 删除crontab任务
-crontab -e
-# 删除相关行
+# 运行卸载脚本
+cd ~/acgfun_signin
+chmod +x uninstall.sh
+./uninstall.sh
+```
 
-# 删除项目目录
+**卸载脚本功能**：
+- 自动检测和备份配置文件（cookies.txt、sendkey.txt）
+- 多种备份选项：主目录、桌面、自定义目录
+- 清除所有相关的crontab定时任务
+- 删除安装目录和相关文件
+- 清理日志文件和Python缓存
+- 生成备份说明文档
+
+### 手动卸载
+
+如需手动卸载，执行以下步骤：
+
+```bash
+# 1. 备份配置文件
+cp config/cookies.txt ~/cookies_backup.txt
+cp config/sendkey.txt ~/sendkey_backup.txt
+
+# 2. 删除crontab任务
+crontab -e
+# 手动删除相关行
+
+# 3. 删除项目目录
 rm -rf ~/acgfun_signin
 
-# 删除logrotate配置（如果创建了）
+# 4. 删除logrotate配置（如果创建了）
 sudo rm -f /etc/logrotate.d/acgfun_signin
 ```
 
