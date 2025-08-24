@@ -96,10 +96,6 @@ class CreditAnalyzer:
                 logging.error("❌ 无法访问积分页面")
                 return None
             
-            # 保存页面内容用于调试
-            with open('credit_page_debug.html', 'w', encoding='utf-8') as f:
-                f.write(response.text)
-            
             soup = BeautifulSoup(response.text, 'html.parser')
             
             # 分析页面结构，寻找积分信息
