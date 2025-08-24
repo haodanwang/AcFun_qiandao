@@ -194,9 +194,13 @@ EOF
 setup_config_files() {
     print_info "设置配置文件..."
     
+    # 创建配置目录和日志目录
+    mkdir -p "$PROJECT_DIR/config"
+    mkdir -p "$PROJECT_DIR/logs"
+    
     # 检查代码库中是否已有样例文件
     local has_example_files=false
-    if [[ -f "cookies.txt.example" ]] && [[ -f "sendkey.txt.example" ]]; then
+    if [[ -f "config/cookies.txt.example" ]] && [[ -f "config/sendkey.txt.example" ]]; then
         has_example_files=true
         print_success "检测到代码库中已有样例文件"
     fi
@@ -238,7 +242,7 @@ setup_config_files() {
     print_info "生成样例文件..."
     
     # 创建 sendkey.txt.example
-    cat > sendkey.txt.example << 'EOF'
+    cat > config/sendkey.txt.example << 'EOF'
 # Server酱SendKey示例文件
 # 请将下面的示例SendKey替换为您的真实SendKey
 # 
@@ -253,7 +257,7 @@ setup_config_files() {
 EOF
     
     # 创建 cookies.txt.example
-    cat > cookies.txt.example << 'EOF'
+    cat > config/cookies.txt.example << 'EOF'
 # Cookie示例文件
 # 请将您从浏览器复制的Cookie内容替换下面的示例内容
 # 
@@ -291,17 +295,17 @@ echo "开始执行AcgFun自动签到 - \$(date)"
 echo "==============================================="
 
 # 检查配置文件
-if [[ ! -f cookies.txt ]]; then
-    echo "错误: cookies.txt文件不存在，请先配置Cookie"
+if [[ ! -f config/cookies.txt ]]; then
+    echo "错误: config/cookies.txt文件不存在，请先配置Cookie"
     exit 1
 fi
 
-if [[ ! -f sendkey.txt ]]; then
-    echo "警告: sendkey.txt文件不存在，将无法发送微信通知"
+if [[ ! -f config/sendkey.txt ]]; then
+    echo "警告: config/sendkey.txt文件不存在，将无法发送微信通知"
 fi
 
 # 执行签到
-python3 cookie_signin.py --file cookies.txt --clean-logs
+python3 cookie_signin.py --clean-logs
 
 echo "===============================================" 
 echo "签到任务完成 - \$(date)"
@@ -335,16 +339,16 @@ setup_crontab() {
     local cron_entries=""
     case $REPLY in
         1)
-            cron_entries="0 9 * * * cd $PROJECT_DIR && python3 cookie_signin.py --file cookies.txt --clean-logs >> $PROJECT_DIR/cron.log 2>&1"
+            cron_entries="0 9 * * * cd $PROJECT_DIR && python3 cookie_signin.py --clean-logs >> logs/cron.log 2>&1"
             ;;
         2)
-            cron_entries="0 9 * * * cd $PROJECT_DIR && python3 cookie_signin.py --file cookies.txt --clean-logs >> $PROJECT_DIR/cron.log 2>&1
-0 12 * * * cd $PROJECT_DIR && python3 cookie_signin.py --file cookies.txt --clean-logs >> $PROJECT_DIR/cron.log 2>&1
-0 18 * * * cd $PROJECT_DIR && python3 cookie_signin.py --file cookies.txt --clean-logs >> $PROJECT_DIR/cron.log 2>&1"
+            cron_entries="0 9 * * * cd $PROJECT_DIR && python3 cookie_signin.py --clean-logs >> logs/cron.log 2>&1
+0 12 * * * cd $PROJECT_DIR && python3 cookie_signin.py --clean-logs >> logs/cron.log 2>&1
+0 18 * * * cd $PROJECT_DIR && python3 cookie_signin.py --clean-logs >> logs/cron.log 2>&1"
             ;;
         3)
             read -p "请输入cron表达式 (例如: 0 9 * * *): " cron_time
-            cron_entries="$cron_time cd $PROJECT_DIR && python3 cookie_signin.py --file cookies.txt --clean-logs >> $PROJECT_DIR/cron.log 2>&1"
+            cron_entries="$cron_time cd $PROJECT_DIR && python3 cookie_signin.py --clean-logs >> logs/cron.log 2>&1"
             ;;
         *)
             print_warning "无效选择，跳过定时任务设置"
@@ -359,7 +363,7 @@ setup_crontab() {
     if [[ ! $REPLY =~ ^[Nn]$ ]]; then
         # 每周日凌晨2点清理日志
         cron_entries="$cron_entries
-0 2 * * 0 cd $PROJECT_DIR && python3 log_cleaner.py >> $PROJECT_DIR/cleanup.log 2>&1"
+0 2 * * 0 cd $PROJECT_DIR && python3 log_cleaner.py >> logs/cleanup.log 2>&1"
         print_info "已添加每周日凌晨2点的日志清理任务"
     fi
     
@@ -381,15 +385,15 @@ show_config_guide() {
     echo
     print_info "1. 配置Server酱SendKey："
     echo "   cd $PROJECT_DIR"
-    echo "   cp sendkey.txt.example sendkey.txt"
-    echo "   vim sendkey.txt  # 填入您的SendKey"
+    echo "   cp config/sendkey.txt.example config/sendkey.txt"
+    echo "   vim config/sendkey.txt  # 填入您的SendKey"
     echo
     print_info "2. 配置Cookie："
-    echo "   cp cookies.txt.example cookies.txt  # 复制示例文件"
-    echo "   vim cookies.txt  # 填入从浏览器复制的Cookie"
+    echo "   cp config/cookies.txt.example config/cookies.txt  # 复制示例文件"
+    echo "   vim config/cookies.txt  # 填入从浏览器复制的Cookie"
     echo
     print_info "3. 测试运行："
-    echo "   python3 cookie_signin.py --file cookies.txt"
+    echo "   python3 cookie_signin.py"
     echo
     print_info "4. 使用启动脚本："
     echo "   ./run_signin.sh"
@@ -399,13 +403,13 @@ show_config_guide() {
     echo
     print_info "配置文件位置："
     echo "   项目目录: $PROJECT_DIR"
-    echo "   SendKey配置: $PROJECT_DIR/sendkey.txt"
-    echo "   Cookie配置: $PROJECT_DIR/cookies.txt"
+    echo "   SendKey配置: $PROJECT_DIR/config/sendkey.txt"
+    echo "   Cookie配置: $PROJECT_DIR/config/cookies.txt"
     echo
     print_info "日志文件："
-    echo "   脚本日志: $PROJECT_DIR/cookie_signin.log"
-    echo "   定时任务日志: $PROJECT_DIR/cron.log"
-    echo "   清理日志: $PROJECT_DIR/cleanup.log"
+    echo "   脚本日志: $PROJECT_DIR/logs/cookie_signin.log"
+    echo "   定时任务日志: $PROJECT_DIR/logs/cron.log"
+    echo "   清理日志: $PROJECT_DIR/logs/cleanup.log"
     echo
     print_success "部署完成！"
 }

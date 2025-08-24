@@ -21,11 +21,16 @@ class LogCleaner:
             project_dir: 项目目录路径，默认为当前目录
         """
         self.project_dir = project_dir or os.path.dirname(os.path.abspath(__file__))
+        self.logs_dir = os.path.join(self.project_dir, 'logs')
         
-        # 配置清理规则
+        # 确保日志目录存在
+        os.makedirs(self.logs_dir, exist_ok=True)
+        
+        # 配置清理规则（现在在logs目录中查找）
         self.cleanup_rules = {
             'cookie_signin.log': 7,      # 保留7天的签到日志
             'cron.log': 30,              # 保留30天的定时任务日志
+            'cleanup.log': 30,           # 保留30天的清理日志
             '*.log': 7,                  # 其他日志文件保留7天
         }
         
@@ -70,8 +75,8 @@ class LogCleaner:
         logging.info("开始清理日志文件...")
         
         for pattern, max_days in self.cleanup_rules.items():
-            # 查找匹配的文件
-            file_pattern = os.path.join(self.project_dir, pattern)
+            # 在logs目录中查找匹配的文件
+            file_pattern = os.path.join(self.logs_dir, pattern)
             matching_files = glob.glob(file_pattern)
             
             for file_path in matching_files:
@@ -110,7 +115,7 @@ class LogCleaner:
 
     def clean_empty_logs(self):
         """清理空的日志文件"""
-        log_files = glob.glob(os.path.join(self.project_dir, "*.log"))
+        log_files = glob.glob(os.path.join(self.logs_dir, "*.log"))
         
         for log_file in log_files:
             try:
@@ -121,12 +126,12 @@ class LogCleaner:
                 logging.error(f"删除空日志文件失败 {log_file}: {e}")
 
     def get_disk_usage(self) -> dict:
-        """获取项目目录磁盘使用情况"""
+        """获取logs目录磁盘使用情况"""
         try:
             total_size = 0
             file_count = 0
             
-            for file_path in glob.glob(os.path.join(self.project_dir, "*")):
+            for file_path in glob.glob(os.path.join(self.logs_dir, "*")):
                 if os.path.isfile(file_path):
                     total_size += os.path.getsize(file_path)
                     file_count += 1

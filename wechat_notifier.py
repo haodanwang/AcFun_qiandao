@@ -198,7 +198,7 @@ class ServerChanNotifier:
         
         return self.send_message(title, desp)
 
-def load_sendkey_from_file(file_path: str = "sendkey.txt") -> Optional[str]:
+def load_sendkey_from_file(file_path: str = "config/sendkey.txt") -> Optional[str]:
     """
     从文件加载Server酱SendKey
     

@@ -11,17 +11,26 @@ import logging
 import time
 import re
 import argparse
+import os
 from urllib.parse import urljoin
 from bs4 import BeautifulSoup
 from wechat_notifier import ServerChanNotifier, load_sendkey_from_file
 from credit_analyzer import CreditAnalyzer
+
+# 配置目录和日志目录
+CONFIG_DIR = 'config'
+LOGS_DIR = 'logs'
+
+# 确保目录存在
+os.makedirs(CONFIG_DIR, exist_ok=True)
+os.makedirs(LOGS_DIR, exist_ok=True)
 
 # 配置日志
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler('cookie_signin.log', encoding='utf-8'),
+        logging.FileHandler(os.path.join(LOGS_DIR, 'cookie_signin.log'), encoding='utf-8'),
         logging.StreamHandler()
     ]
 )
@@ -439,7 +448,7 @@ class CookieSignin:
 
 def main():
     parser = argparse.ArgumentParser(description='AcgFun Cookie签到脚本')
-    parser.add_argument('--file', type=str, help='Cookie文件路径')
+    parser.add_argument('--file', type=str, default='config/cookies.txt', help='Cookie文件路径 (默认: config/cookies.txt)')
     parser.add_argument('--cookie', type=str, help='直接提供Cookie字符串')
     parser.add_argument('--clean-logs', action='store_true', help='签到后清理旧日志文件')
     
